@@ -56,11 +56,66 @@
 
 <label class="stack gap:-1">
 	<span class="fw:medium"> Email Body </span>
+	<!-- Drag-and-Drop Panel -->
+	<div id="drag-panel">
+
+		<div class="draggable" draggable="true" data-text="{@text:Enter Username|Username}">Username</div>
+		<div class="draggable" draggable="true" data-text="{@date:Enter Date|2018-07-22}">Date</div>
+	</div>
+
+	<!-- Drop Area -->
 	<textarea
 		name="body"
+		id="emailBody"
 		required
 		placeholder="Hi, welcome to our platform. We are excited to have you on board!"
 	></textarea>
 </label>
 
 <a href="/guide" class="link" target="_blank"> ❓ Learn more about template formatting </a>
+
+<style>
+	#drag-panel {
+		display: flex;
+		gap: 10px;
+		margin-bottom: 10px;
+	}
+	.draggable {
+		padding: 5px 10px;
+		background-color: lightblue;
+		cursor: grab;
+		border-radius: 5px;
+	}
+	#emailBody {
+		min-height: 150px;
+		width: 100%;
+	}
+</style>
+
+<script>
+	document.querySelectorAll(".draggable").forEach((item) => {
+		item.addEventListener("dragstart", (event) => {
+			event.dataTransfer.setData("text", event.target.getAttribute("data-text"));
+		});
+	});
+
+	const emailBody = document.getElementById("emailBody");
+
+	emailBody.addEventListener("dragover", (event) => {
+		event.preventDefault();
+	});
+
+	emailBody.addEventListener("drop", (event) => {
+		event.preventDefault();
+		const text = event.dataTransfer.getData("text");
+		const cursorPosition = emailBody.selectionStart;
+		const currentText = emailBody.value;
+
+		// Insert at cursor position
+		emailBody.value =
+			currentText.substring(0, cursorPosition) +
+			text +
+			currentText.substring(cursorPosition);
+	});
+</script>
+
