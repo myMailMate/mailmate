@@ -1,0 +1,47 @@
+<h2>Login</h2>
+
+<% if (locals.message) { %>
+<p><%= message %></p>
+<% } %>
+
+<form action="/auth/callback/credentials" method="POST" class="flow" style="max-width: 30rem">
+	<input id="csrfToken" type="hidden" name="csrfToken" value="" />
+	<input type="hidden" name="provider" value="credentials" />
+	<div class="stack">
+		<label for="email">Email</label>
+		<input type="text" placeholder="user@email.com" id="email" name="email" required />
+	</div>
+	<div class="stack">
+		<label for="password">Password</label>
+		<input type="password" class="form-control" id="password" name="password" required />
+	</div>
+	<button type="submit" class="primary">Login</button>
+</form>
+
+<p>Don't have an account? <a href="/signup">Sign up</a></p>
+
+<script>
+	document.addEventListener("DOMContentLoaded", async function () {
+		try {
+			const response = await fetch("/auth/csrf", {
+				method: "GET",
+				headers: {
+					"Content-Type": "application/json",
+				},
+			});
+			const data = await response.json();
+			const csrfToken = data.csrfToken;
+
+			const input = document.getElementById("csrfToken");
+
+			console.log({ input });
+			if (input) {
+				console.log("CSRF token:", csrfToken);
+				input.value = csrfToken;
+			} else {
+			}
+		} catch (error) {
+			console.error("Error fetching CSRF token:", error);
+		}
+	});
+</script>

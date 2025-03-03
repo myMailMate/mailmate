@@ -1,0 +1,19 @@
+<h2>Sign Up</h2>
+
+<% if (locals.error) { %>
+<p style="color: red"><%= error %></p>
+<% } %>
+
+<form action="/signup" method="post" class="flow" style="max-width: 30rem">
+	<div class="stack">
+		<label for="email">Email</label>
+		<input type="text" placeholder="user@email.com" id="email" name="email" required />
+	</div>
+	<div class="stack">
+		<label for="password">Password</label>
+		<input type="password" class="form-control" id="password" name="password" required />
+	</div>
+	<button type="submit" class="primary">Sign Up</button>
+</form>
+
+<p>Already have an account? <a href="/login">Log in</a></p>

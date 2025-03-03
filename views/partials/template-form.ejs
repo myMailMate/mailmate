@@ -1,68 +1,80 @@
-<div class="stack">
-	<label class="stack">
-		<span class="fw:medium"> What would you like to name this template? </span>
-		<input
-			type="text"
-			name="name"
-			required
-			autocomplete="off"
-			autofocus
-			placeholder="Welcome Email"
-			data-lpignore="true"
-			data-form-type="other"
-		/>
-	</label>
-	<div class="flow fields">
-		<label class="fw:medium" for="to">Who are you sending this to?</label>
-		<div class="cluster">
+<div class="cluster">
+	<div class="stack">
+		<label class="stack">
+			<span class="fw:medium"> What would you like to name this template? </span>
 			<input
-				type="email"
-				id="to"
-				name="to"
-				placeholder="user@email.com"
+				type="text"
+				name="name"
+				required
+				autocomplete="off"
+				autofocus
+				placeholder="Welcome Email"
 				data-lpignore="true"
 				data-form-type="other"
 			/>
-			<button id="ccFieldButton" type="button" onclick="toggleCcField()">Cc</button>
-			<button id="bccFieldButton" type="button" onclick="toggleBccField()">Bcc</button>
+		</label>
+		<div class="flow fields">
+			<label class="fw:medium" for="to">Who are you sending this to?</label>
+			<div class="cluster">
+				<input
+					type="email"
+					id="to"
+					name="to"
+					placeholder="user@email.com"
+					data-lpignore="true"
+					data-form-type="other"
+				/>
+				<button id="ccFieldButton" type="button" onclick="toggleCcField()">Cc</button>
+				<button id="bccFieldButton" type="button" onclick="toggleBccField()">Bcc</button>
+			</div>
+
+			<div id="ccField" style="display: none" class="stack gap:-1">
+				<label class="fw:medium" for="cc" data-lpignore="true" data-form-type="other">
+					Who would you like to CC this email to?
+				</label>
+				<input type="email" id="cc" name="cc" placeholder="user@email.com" />
+			</div>
+
+			<div id="bccField" style="display: none" class="stack gap:-1">
+				<label class="fw:medium" for="bcc" data-lpignore="true" data-form-type="other">
+					Who would you like to CC this email to?
+				</label>
+				<input type="email" id="bcc" name="bcc" placeholder="user@email.com" />
+			</div>
 		</div>
 
-		<div id="ccField" style="display: none" class="stack gap:-1">
-			<label class="fw:medium" for="cc" data-lpignore="true" data-form-type="other">
-				Who would you like to CC this email to?
-			</label>
-			<input type="email" id="cc" name="cc" placeholder="user@email.com" />
-		</div>
+		<label class="stack gap:-1">
+			<span class="fw:medium"> Email Subject </span>
+			<input
+				type="text"
+				name="subject"
+				required
+				placeholder="Welcome to our platform"
+				data-lpignore="true"
+				data-form-type="other"
+				data-drop-target
+			/>
+			<div class="tag-bank stack"></div>
+		</label>
 
-		<div id="bccField" style="display: none" class="stack gap:-1">
-			<label class="fw:medium" for="bcc" data-lpignore="true" data-form-type="other">
-				Who would you like to CC this email to?
-			</label>
-			<input type="email" id="bcc" name="bcc" placeholder="user@email.com" />
-		</div>
+		<label class="stack gap:-1">
+			<span class="fw:medium"> Email Body </span>
+			<textarea
+				name="body"
+				required
+				placeholder="Hi, welcome to our platform. We are excited to have you on board!"
+				data-drop-target
+			></textarea>
+		</label>
 	</div>
+	<div class="tag-bank stack">
+		<h4 class="fw:medium">Insert a dynamic field:</h4>
+		<div class="divider-horizontal"></div>
 
-	<label class="stack gap:-1">
-		<span class="fw:medium"> Email Subject </span>
-		<input
-			type="text"
-			name="subject"
-			required
-			placeholder="Welcome to our platform"
-			data-lpignore="true"
-			data-form-type="other"
-		/>
-		<div class="tag-bank stack"></div>
-	</label>
-
-	<label class="stack gap:-1">
-		<span class="fw:medium"> Email Body </span>
-		<textarea
-			name="body"
-			required
-			placeholder="Hi, welcome to our platform. We are excited to have you on board!"
-		></textarea>
-	</label>
-
-	<!-- <a href="/guide" class="link" target="_blank"> ❓ Learn more about template formatting </a> -->
+		<div class="tags cluster" style="--wrap: wrap; --align: center"></div>
+		<div class="divider-horizontal"></div>
+		<p>
+			<small> <strong>Tip:</strong> Drag a field to insert it where your cursor is. </small>
+		</p>
+	</div>
 </div>

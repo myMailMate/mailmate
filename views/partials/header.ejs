@@ -8,12 +8,21 @@
 				</a>
 			</li>
 		</ul>
-		<ul role="list" class="cluster">
-			<li><a href="/" class="">Templates</a></li>
+		<div class="cluster">
+			<ul role="list" class="cluster">
+				<li><a href="/" class="">Templates</a></li>
+				<div class="divider"></div>
+				<li><a href="/guide" class="">Guide</a></li>
+				<li><a href="https://github.com/myMailMate/mailmate/tree/main" target="_blank" class="">GitHub</a></li>
+			</ul>
+
+			<% if (session) { %>
 			<div class="divider"></div>
-			<li><a href="/guide" class="">Guide</a></li>
-			<li><a href="https://github.com/myMailMate/mailmate/tree/main" target="_blank" class="">GitHub</a></li>
-		</ul>
+			<form action="/auth/signout" method="GET">
+				<button class="error" type="submit">Log Out</button>
+			</form>
+			<% } %>
+		</div>
 	</nav>
 </header>
 

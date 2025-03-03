@@ -26,37 +26,9 @@ function openLabelPlaceholderModal() {
 	document.getElementById("tagPlaceholder").value = "";
 }
 
-// Insert the dynamic tag based on the user's input
-function insertAtCursor(input, text) {
-	const start = input.selectionStart;
-	const end = input.selectionEnd;
-	const before = input.value.substring(0, start);
-	const after = input.value.substring(end);
-
-	input.value = before + text + after;
-	input.selectionStart = input.selectionEnd = start + text.length;
-	input.focus();
-}
-
-// Handle the insert action on modal submit
-document.getElementById("insertTag").addEventListener("click", () => {
-	const label = document.getElementById("tagLabel").value.trim() || "Field";
-	const placeholder = document.getElementById("tagPlaceholder").value.trim();
-
-	// Create the dynamic tag based on the label and placeholder
-	let tag = `{@${selectedType}:${label}`;
-	if (placeholder) tag += `|${placeholder}`;
-	tag += "}";
-
-	// Insert the tag into the email body (or anywhere appropriate)
-	const emailBodyInput = document.querySelector("textarea[name='body']");
-	insertAtCursor(emailBodyInput, tag);
-	labelPlaceholderModal.close(); // Close modal after insertion
-});
-
 // Function to create the tag buttons dynamically
 function generateTags() {
-	const tagBank = document.querySelector(".tags"); // The container where tags are stored
+	const tagBanks = document.querySelectorAll(".tags"); // The container where tags are stored
 	const formInputTypes = [
 		"text",
 		"email",
@@ -74,22 +46,87 @@ function generateTags() {
 	];
 
 	formInputTypes.forEach((type) => {
-		const button = document.createElement("button");
-		button.type = "button";
-		button.classList.add("tag");
-		button.dataset.type = type;
-		button.textContent = type.charAt(0).toUpperCase() + type.slice(1); // Capitalize first letter
-		button.addEventListener("click", (event) => {
-			selectedType = event.target.dataset.type; // Store selected type
-			openLabelPlaceholderModal(); // Open the modal to edit the label/placeholder
-		});
+		// insert on all the tags
+		tagBanks.forEach((tag) => {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.draggable = true;
+			button.classList.add("tag");
+			button.dataset.type = type;
+			button.textContent = type.charAt(0).toUpperCase() + type.slice(1); // Capitalize first letter
 
-		tagBank.appendChild(button);
+			button.addEventListener("click", (event) => {
+				selectedType = event.target.dataset.type; // Store selected type
+				// Open the modal to edit the label/placeholder
+			});
+
+			button.addEventListener("dragstart", (event) => {
+				const dragImage = document.createElement("div");
+				dragImage.style.width = "1px";
+				dragImage.style.height = "1px";
+				dragImage.style.opacity = "0";
+				event.dataTransfer.setDragImage(dragImage, 0, 0);
+				event.dataTransfer.setData("text/plain", `{@${type}:Field}`);
+			});
+
+			tag.appendChild(button);
+		});
 	});
 }
 
 // Call the function to generate tags when the page loads
 generateTags();
+
+// ...existing code...
+
+let targetInputField = null; // Store the target input field
+let cursorPosition = { start: 0, end: 0 }; // Store the cursor position
+
+// Add drop event listener to all elements with data-drop-target attribute
+const dropTargets = document.querySelectorAll("[data-drop-target]");
+
+dropTargets.forEach((target) => {
+	target.addEventListener("drop", (event) => {
+		event.preventDefault();
+		const data = event.dataTransfer.getData("text/plain");
+		const match = data.match(/\{@(\w+):/);
+		if (match) {
+			selectedType = match[1]; // Extract the type from the dropped data
+			targetInputField = event.target; // Store the target input field
+			cursorPosition.start = targetInputField.selectionStart;
+			cursorPosition.end = targetInputField.selectionEnd;
+			openLabelPlaceholderModal(); // Open the modal to edit the label/placeholder
+		}
+	});
+});
+
+// Handle the insert action on modal submit
+document.getElementById("insertTag").addEventListener("click", () => {
+	const label = document.getElementById("tagLabel").value.trim() || "Field";
+	const placeholder = document.getElementById("tagPlaceholder").value.trim();
+
+	// Create the dynamic tag based on the label and placeholder
+	let tag = `{@${selectedType}:${label}`;
+	if (placeholder) tag += `|${placeholder}`;
+	tag += "}";
+
+	// Insert the tag into the target input field at the cursor position
+	if (targetInputField) {
+		insertAtCursor(targetInputField, tag, cursorPosition.start, cursorPosition.end);
+		targetInputField = null; // Reset the target input field
+		cursorPosition = { start: 0, end: 0 }; // Reset the cursor position
+	}
+	labelPlaceholderModal.close(); // Close modal after insertion
+});
+
+function insertAtCursor(input, text, start, end) {
+	const before = input.value.substring(0, start);
+	const after = input.value.substring(end);
+
+	input.value = before + text + after;
+	input.selectionStart = input.selectionEnd = start + text.length;
+	input.focus();
+}
 
 const openCreateDialog = () => {
 	createDialog.showModal();
