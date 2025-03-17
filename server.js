@@ -1,5 +1,6 @@
 import { ExpressAuth, getSession } from "@auth/express";
 import Credentials from "@auth/express/providers/credentials";
+import Google from "@auth/express/providers/google"; // 
 import Database from "better-sqlite3";
 import crypto from "crypto";
 import "dotenv/config";
@@ -8,6 +9,7 @@ import expressLayouts from "express-ejs-layouts";
 import expressUploads from "express-fileupload";
 import expressMethodOverride from "method-override";
 import { join } from "path";
+
 
 const __dirname = import.meta.dirname;
 
@@ -59,10 +61,11 @@ app.use(express.static("public"));
 const authConfig = {
 	secret,
 	trustHost: true,
-	pages: {
-		signIn: "/login", // Custom sign-in page
-	},
+//	pages: {
+//		signIn: "/login", // Custom sign-in page
+    //	},
 	providers: [
+	    Google(),
 		Credentials({
 			credentials: {
 				email: { label: "Email", type: "text" },
@@ -187,7 +190,7 @@ const deleteTemplate = (id) => {
 const authenticatedUser = async (req, res, next) => {
 	const session = res.locals.session ?? (await getSession(req, authConfig));
 	if (!session?.user) {
-		res.redirect("/login");
+		res.redirect("/login"); 
 	} else {
 		next();
 	}
@@ -195,10 +198,10 @@ const authenticatedUser = async (req, res, next) => {
 
 // Routes
 app.get("/login", (req, res) => {
-	if (res.locals.session?.user) {
-		return res.redirect("/");
-	}
-	res.render("login");
+    if (res.locals.session?.user) {
+	return res.redirect("/");
+    } 
+    res.render("login");
 });
 
 app.get("/signup", (req, res) => {

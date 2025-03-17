@@ -4,8 +4,12 @@
 <p><%= message %></p>
 <% } %>
 
+<form id="google" target="_blank" action="/auth/signin/google" method="POST" class="flow" style="max-width: 30rem">
+	<input class="csrfToken" type="hidden" name="csrfToken" value="" />
+</form>
+
 <form action="/auth/callback/credentials" method="POST" class="flow" style="max-width: 30rem">
-	<input id="csrfToken" type="hidden" name="csrfToken" value="" />
+	<input class="csrfToken" type="hidden" name="csrfToken" value="" />
 	<input type="hidden" name="provider" value="credentials" />
 	<div class="stack">
 		<label for="email">Email</label>
@@ -15,7 +19,14 @@
 		<label for="password">Password</label>
 		<input type="password" class="form-control" id="password" name="password" required />
 	</div>
+	<div class="cluster">
 	<button type="submit" class="primary">Login</button>
+	<button type="submit" class="cluster" form="google">
+	  <img class="icon" src="/img/google-icon.svg"/>
+	  Google Sign-in
+	</button>
+	</div>
+
 </form>
 
 <p>Don't have an account? <a href="/signup">Sign up</a></p>
@@ -32,14 +43,8 @@
 			const data = await response.json();
 			const csrfToken = data.csrfToken;
 
-			const input = document.getElementById("csrfToken");
-
-			console.log({ input });
-			if (input) {
-				console.log("CSRF token:", csrfToken);
-				input.value = csrfToken;
-			} else {
-			}
+			const inputs = document.querySelectorAll(".csrfToken");
+inputs.forEach((input)=>{input.value=csrfToken});
 		} catch (error) {
 			console.error("Error fetching CSRF token:", error);
 		}
