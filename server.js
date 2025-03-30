@@ -29,19 +29,33 @@ const db = new Database("./data.db");
 const schema = `
     CREATE TABLE IF NOT EXISTS "templates" (
         "id" TEXT PRIMARY KEY,
+		"user_id" TEXT NOT NULL,
         "name" TEXT NOT NULL,
         "to" TEXT NOT NULL,
         "cc" TEXT,
         "bcc" TEXT,
         "subject" TEXT NOT NULL,
         "body" TEXT NOT NULL,
-        "fields" TEXT
+        "fields" TEXT,
+		FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
     CREATE TABLE IF NOT EXISTS "users" (
         "id" TEXT PRIMARY KEY,
         "email" TEXT NOT NULL UNIQUE,
         "password" TEXT NOT NULL
+    );
+
+	CREATE TABLE IF NOT EXISTS "logs" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "user_id" TEXT NOT NULL,
+        "to" TEXT NOT NULL,
+		"cc" TEXT,
+		"bcc" TEXT,
+		"subject" TEXT,
+		"body" TEXT,
+		"date" DATE NOT NULL,
+		FOREIGN KEY (user_id) REFERENCES users(id)
     );
 `;
 
@@ -99,13 +113,35 @@ const authConfig = {
 			},
 		}),
 	],
-	debug: true, // Enable debug logs for troubleshooting
+	//allows user id to be accessed
+	callbacks: {
+        async session({ session, token }) {
+            if (token) {
+                session.user.id = token.id;
+            }
+            return session;
+        },
+        async jwt({ token, user }) {
+            if (user) {
+                token.id = user.id;
+            }
+            return token;
+        },
+    },
+    debug: true, // Enable debug logs for troubleshooting
 };
 
 const authSession = async (req, res, next) => {
 	res.locals.session = await getSession(req, authConfig);
 	next();
 };
+
+//session debugging
+app.get("/debug-session", async (req, res) => {
+    const session = await getSession(req, authConfig);
+    console.log("Session:", session);
+    res.json(session);
+});
 
 app.use("/auth/*", ExpressAuth(authConfig));
 
@@ -150,13 +186,20 @@ const addUser = (email, password) => {
 	db.prepare('INSERT INTO "users" ("id", "email", "password") VALUES (?, ?, ?)').run(id, email, `${hash}:${salt}`);
 };
 
-const getTemplates = () => {
-	const templates = db.prepare('SELECT * FROM "templates"').all();
+//get all templates matching id
+const getTemplates = (userId) => {
+	const templates = db.prepare('SELECT * FROM "templates" WHERE "user_id" = ?').all(userId);
 	return templates.map((template) => ({
 		...template,
 		fields: JSON.parse(template.fields),
 		stringified: sanitizeJSON(JSON.stringify({ ...template, fields: JSON.parse(template.fields) })),
 	}));
+};
+
+//get all logs matching id
+const getLogs = (userId) => {
+	const logs = db.prepare('SELECT * FROM "logs" WHERE "user_id" = ?').all(userId);
+	return logs
 };
 
 const getTemplate = (id) => {
@@ -168,11 +211,11 @@ const getTemplate = (id) => {
 	return template;
 };
 
-const createTemplate = (template) => {
+const createTemplate = (template, userId) => {
 	const { id, name, to, cc, bcc, subject, body, fields } = template;
 	db.prepare(
-		'INSERT INTO "templates" ("id", "name", "to", "cc", "bcc", "subject", "body", "fields") VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-	).run(id, name, to, cc, bcc, subject, body, JSON.stringify(fields));
+		'INSERT INTO "templates" ("id", "user_id", "name", "to", "cc", "bcc", "subject", "body", "fields") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+	).run(id, userId, name, to, cc, bcc, subject, body, JSON.stringify(fields));
 };
 
 const updateTemplate = (id, template) => {
@@ -231,12 +274,20 @@ app.get("/logout", (req, res) => {
 app.use(authenticatedUser);
 
 app.get("/", async (_, res) => {
-	const templates = getTemplates();
+	const userId = res.locals.session?.user?.id;
+	const templates = getTemplates(userId);
 	res.render("home", { templates, query: "" });
 });
 
 app.get("/guide", (_, res) => {
 	res.render("guide");
+});
+
+//render logs
+app.get("/sent", async (_, res) => {
+	const userId = res.locals.session?.user?.id;
+	const logs = getLogs(userId);
+	res.render("sent", {logs});
 });
 
 app.get("/template/:id", async (req, res) => {
@@ -276,8 +327,9 @@ app.post("/template", async (req, res) => {
 	const { name, to, cc, bcc, subject, body } = req.body;
 	const id = nanoId();
 	const fields = extractDynamicFields(`${subject}${body}`);
+	const userId = res.locals.session?.user?.id;
 
-	createTemplate({ id, name, to, cc, bcc, subject, body, fields });
+	createTemplate({ id, name, to, cc, bcc, subject, body, fields }, userId);
 
 	res.redirect("/");
 });
@@ -303,6 +355,12 @@ app.get("/search", async (req, res) => {
 	return res.render("home", { query, templates: searchResults });
 });
 
+//save log in db
+const logEmail = (user_id, to, cc, bcc, subject, body) => {
+	const date = new Date().toISOString().split("T")[0];
+	db.prepare('INSERT INTO "logs" ("user_id", "to", "cc", "bcc", "subject", "body", "date") VALUES (?, ?, ?, ?, ?, ?, ?)').run(user_id, to, cc, bcc, subject, body, date);
+}
+
 app.post("/generate", async (req, res) => {
 	const { templateId } = req.query;
 	const { to, cc, bcc, ...fields } = req.body;
@@ -323,7 +381,8 @@ app.post("/generate", async (req, res) => {
 
 	const e = encodeURIComponent;
 	const mailtoLink = `mailto:${e(to)}?cc=${e(cc)}&bcc=${e(bcc)}&subject=${e(subject)}&body=${e(body)}`;
-
+	const userId = res.locals.session?.user?.id;
+	logEmail(userId, to, cc, bcc, subject, body)
 	res.redirect(mailtoLink);
 });
 

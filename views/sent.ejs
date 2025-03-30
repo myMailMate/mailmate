@@ -1,0 +1,27 @@
+<h1 class="fs:xl">Email History</h1>
+
+
+<% if (logs && logs.length > 0) { %>
+    <ul>
+        <% logs.forEach(log => { %>
+            <span style="font-size: 1.2em; font-weight: bold;"> <%= log.subject %> </span>
+            <span style="font-size: 0.8em; color: grey; margin-left: 10px;"> 
+                <%= log.date %>
+            </span><br>
+            <strong>To:</strong> <%= log.to %><br>
+        
+            <% if (log.cc && log.cc.trim() !== "") { %>
+                <strong>CC:</strong> <%= log.cc %><br>
+            <% } %>
+        
+            <% if (log.bcc && log.bcc.trim() !== "") { %>
+                <strong>BCC:</strong> <%= log.bcc %><br>
+            <% } %>
+        
+            <strong>Body:</strong> <br> <%= log.body %><br><br>
+        <% }); %>
+    </ul>
+<% } else { %>
+    <p>No logs available.</p>
+<% } %>
+	
