@@ -17,7 +17,7 @@ body {
 	--clr-400: hsl(186, 100%, 24%);
 	--clr-500: hsl(171, 100%, 32%);
 	--clr-600: hsla(0, 0%, 48%, 1);
-	--clr-error: hsl(0, 100%, 30%);
+	--clr-error: hsl(0, 47%, 48%);
 }
 
 :root {
@@ -505,12 +505,13 @@ button.no-style:hover {
 }
 
 button.error {
-	background-color: hsl(0, 100%, 30%);
+	background-color: var(--clr-error);
 	color: hsl(0, 0%, 100%);
+	border-color: transparent ;
 }
 
 button.error:hover {
-	background-color: hsl(0, 100%, 60%);
+	opacity: 0.8;
 }
 
 button.primary {
