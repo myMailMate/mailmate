@@ -1,10 +1,10 @@
 import { ExpressAuth, getSession } from "@auth/express";
 import Credentials from "@auth/express/providers/credentials";
-import Google from "@auth/express/providers/google"; // 
+import Google from "@auth/express/providers/google";
 import Database from "better-sqlite3";
-import crypto from "crypto";
+import crypto, { sign } from "crypto";
 import "dotenv/config";
-import express, { json, urlencoded } from "express"; // Import json middleware
+import express, { json, urlencoded } from "express";
 import expressLayouts from "express-ejs-layouts";
 import expressUploads from "express-fileupload";
 import expressMethodOverride from "method-override";
@@ -75,11 +75,11 @@ app.use(express.static("public"));
 const authConfig = {
 	secret,
 	trustHost: true,
-//	pages: {
-//		signIn: "/login", // Custom sign-in page
-    //	},
+	// pages: {
+	// 	signIn: "/login", // Custom sign-in page
+	// },
 	providers: [
-	    Google(),
+		Google(),
 		Credentials({
 			credentials: {
 				email: { label: "Email", type: "text" },
@@ -115,20 +115,39 @@ const authConfig = {
 	],
 	//allows user id to be accessed
 	callbacks: {
-        async session({ session, token }) {
-            if (token) {
-                session.user.id = token.id;
-            }
-            return session;
-        },
-        async jwt({ token, user }) {
-            if (user) {
-                token.id = user.id;
-            }
-            return token;
-        },
-    },
-    debug: true, // Enable debug logs for troubleshooting
+		async session({ session, token }) {
+			if (token) {
+				const user = getUser(token.email);
+
+				if (!user) {
+					return null;
+				}
+
+				session.user.id = user.id
+			}
+			return session;
+		},
+		async jwt({ token, user }) {
+			if (user) {
+				token.id = user.id;
+			}
+			return token;
+		},
+		signIn: async ({ account, profile }) => {
+			if (account.provider === "google") {
+				const user = getUser(profile.email);
+
+				if (!user) {
+					addUser(profile.email, nanoId());
+				}
+
+				return true;
+			}
+
+			return true;
+		},
+	},
+	debug: true, // Enable debug logs for troubleshooting
 };
 
 const authSession = async (req, res, next) => {
@@ -138,9 +157,9 @@ const authSession = async (req, res, next) => {
 
 //session debugging
 app.get("/debug-session", async (req, res) => {
-    const session = await getSession(req, authConfig);
-    console.log("Session:", session);
-    res.json(session);
+	const session = await getSession(req, authConfig);
+	console.log("Session:", session);
+	res.json(session);
 });
 
 app.use("/auth/*", ExpressAuth(authConfig));
@@ -182,8 +201,8 @@ const getUser = (email) => {
 
 const addUser = (email, password) => {
 	const { salt, hash } = saltAndHashPassword(password);
-	const id = nanoId();
-	db.prepare('INSERT INTO "users" ("id", "email", "password") VALUES (?, ?, ?)').run(id, email, `${hash}:${salt}`);
+	const userId = nanoId(10);
+	db.prepare('INSERT INTO "users" ("id", "email", "password") VALUES (?, ?, ?)').run(userId, email, `${hash}:${salt}`);
 };
 
 //get all templates matching id
@@ -233,7 +252,7 @@ const deleteTemplate = (id) => {
 const authenticatedUser = async (req, res, next) => {
 	const session = res.locals.session ?? (await getSession(req, authConfig));
 	if (!session?.user) {
-		res.redirect("/login"); 
+		res.redirect("/login");
 	} else {
 		next();
 	}
@@ -241,10 +260,10 @@ const authenticatedUser = async (req, res, next) => {
 
 // Routes
 app.get("/login", (req, res) => {
-    if (res.locals.session?.user) {
-	return res.redirect("/");
-    } 
-    res.render("login");
+	if (res.locals.session?.user) {
+		return res.redirect("/");
+	}
+	res.render("login");
 });
 
 app.get("/signup", (req, res) => {
@@ -287,7 +306,7 @@ app.get("/guide", (_, res) => {
 app.get("/sent", async (_, res) => {
 	const userId = res.locals.session?.user?.id;
 	const logs = getLogs(userId);
-	res.render("sent", {logs});
+	res.render("sent", { logs });
 });
 
 app.get("/template/:id", async (req, res) => {
@@ -329,6 +348,7 @@ app.post("/template", async (req, res) => {
 	const fields = extractDynamicFields(`${subject}${body}`);
 	const userId = res.locals.session?.user?.id;
 
+	console.log({ userId });
 	createTemplate({ id, name, to, cc, bcc, subject, body, fields }, userId);
 
 	res.redirect("/");
