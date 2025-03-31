@@ -147,7 +147,7 @@ const authConfig = {
 			return true;
 		},
 	},
-	debug: true, // Enable debug logs for troubleshooting
+	// debug: true,
 };
 
 const authSession = async (req, res, next) => {
