@@ -10,6 +10,11 @@ import expressUploads from "express-fileupload";
 import expressMethodOverride from "method-override";
 import { join } from "path";
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { authenticate } from '@google-cloud/local-auth';
+import { google } from 'googleapis';
+
 
 const __dirname = import.meta.dirname;
 
@@ -57,6 +62,19 @@ const schema = `
 		"date" DATE NOT NULL,
 		FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+	CREATE TABLE IF NOT EXISTS "scheduled_emails" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "user_id" TEXT NOT NULL,
+    "to" TEXT NOT NULL,
+    "cc" TEXT,
+    "bcc" TEXT,
+    "subject" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "scheduled_time" DATETIME NOT NULL,
+    "status" TEXT DEFAULT 'pending',
+    FOREIGN KEY (user_id) REFERENCES users(id)
+	);
 `;
 
 db.exec(schema);
@@ -221,6 +239,12 @@ const getLogs = (userId) => {
 	return logs
 };
 
+//save log in db
+const logEmail = (user_id, to, cc, bcc, subject, body) => {
+	const date = new Date().toISOString().split("T")[0];
+	db.prepare('INSERT INTO "logs" ("user_id", "to", "cc", "bcc", "subject", "body", "date") VALUES (?, ?, ?, ?, ?, ?, ?)').run(user_id, to, cc, bcc, subject, body, date);
+}
+
 const getTemplate = (id) => {
 	const template = db.prepare('SELECT * FROM "templates" WHERE "id" = ?').get(id);
 	if (template) {
@@ -247,6 +271,230 @@ const updateTemplate = (id, template) => {
 const deleteTemplate = (id) => {
 	db.prepare('DELETE FROM "templates" WHERE "id" = ?').run(id);
 };
+
+const getNextScheduledEmail = () => {
+	return db.prepare(
+		"SELECT * FROM scheduled_emails WHERE status = 'pending' ORDER BY scheduled_time ASC LIMIT 1"
+	).get();
+};
+
+const getDueEmails = () => {
+	const now = new Date().toISOString();
+	return db.prepare(
+		"SELECT * FROM scheduled_emails WHERE status = 'pending' AND scheduled_time <= ? ORDER BY scheduled_time ASC"
+	).all(now);
+};
+
+const markEmailAsSent = (id) => {
+	db.prepare(
+		"UPDATE scheduled_emails SET status = 'sent' WHERE id = ?"
+	).run(id);
+};
+
+const markEmailAsFailed = (id, error) => {
+	db.prepare(
+		"UPDATE scheduled_emails SET status = 'failed' WHERE id = ?"
+	).run(id);
+};
+
+const scheduleEmail = (userId, to, cc, bcc, subject, body, scheduledTime) => {
+	const result = db.prepare(
+		'INSERT INTO scheduled_emails (user_id, "to", cc, bcc, subject, body, scheduled_time) VALUES (?, ?, ?, ?, ?, ?, ?)'
+	).run(userId, to, cc, bcc, subject, body, scheduledTime);
+
+	// Check if we need to update the scheduler
+	const scheduledDate = new Date(scheduledTime);
+	if (!emailScheduler.nextCheckTime || scheduledDate < emailScheduler.nextCheckTime) {
+		emailScheduler.scheduleNextCheck();
+	}
+
+	return result.lastInsertRowid;
+};
+
+// If modifying these scopes, delete token.json.
+const SCOPES = [
+	'https://www.googleapis.com/auth/gmail.readonly',
+	'https://www.googleapis.com/auth/gmail.send',
+	'https://www.googleapis.com/auth/gmail.compose',
+	'https://www.googleapis.com/auth/gmail.modify'
+];
+// The file token.json stores the user's access and refresh tokens, and is
+// created automatically when the authorization flow completes for the first
+// time.
+const TOKEN_PATH = path.join(process.cwd(), 'token.json');
+const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
+
+/**
+ * Reads previously authorized credentials from the save file.
+ *
+ * @return {Promise<OAuth2Client|null>}
+ */
+async function loadSavedCredentialsIfExist() {
+	try {
+		const content = await fs.readFile(TOKEN_PATH);
+		const credentials = JSON.parse(content);
+		return google.auth.fromJSON(credentials);
+	} catch (err) {
+		return null;
+	}
+}
+
+/**
+ * Serializes credentials to a file compatible with GoogleAuth.fromJSON.
+ *
+ * @param {OAuth2Client} client
+ * @return {Promise<void>}
+ */
+async function saveCredentials(client) {
+	const content = await fs.readFile(CREDENTIALS_PATH);
+	const keys = JSON.parse(content);
+	const key = keys.installed || keys.web;
+	const payload = JSON.stringify({
+		type: 'authorized_user',
+		client_id: key.client_id,
+		client_secret: key.client_secret,
+		refresh_token: client.credentials.refresh_token,
+	});
+	await fs.writeFile(TOKEN_PATH, payload);
+}
+
+/**
+ * Load or request or authorization to call APIs.
+ *
+ */
+async function authorize() {
+	let client = await loadSavedCredentialsIfExist();
+	if (client) {
+		return client;
+	}
+	client = await authenticate({
+		scopes: SCOPES,
+		keyfilePath: CREDENTIALS_PATH,
+	});
+	if (client.credentials) {
+		await saveCredentials(client);
+	}
+	return client;
+}
+
+/**
+ * Send an email using Gmail API.
+ *
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ */
+async function sendEmail(auth, options) {
+	const gmail = google.gmail({ version: 'v1', auth });
+
+	// Extract email options
+	const { to, cc, bcc, subject, body } = options;
+
+	// Construct email content
+	const emailContent = [
+		`To: ${to}`,
+		cc ? `Cc: ${cc}` : '',
+		bcc ? `Bcc: ${bcc}` : '',
+		'Content-Type: text/plain; charset=utf-8',
+		'MIME-Version: 1.0',
+		`Subject: ${subject}`,
+		'',
+		body
+	]
+		.filter(Boolean) // Remove empty lines (for optional cc/bcc)
+		.join('\r\n');
+
+	// Encode the email in base64url format as required by Gmail API
+	const encodedEmail = Buffer.from(emailContent)
+		.toString('base64')
+		.replace(/\+/g, '-')
+		.replace(/\//g, '_')
+		.replace(/=+$/, '');
+
+	try {
+		const res = await gmail.users.messages.send({
+			userId: 'me',
+			requestBody: {
+				raw: encodedEmail
+			}
+		});
+
+		console.log('Email sent successfully:', res.data);
+		return res.data;
+	} catch (error) {
+		console.error('Error sending email:', error);
+		throw error;
+	}
+}
+
+const emailScheduler = {
+	nextCheckTime: null,
+	timerId: null,
+
+	init() {
+		this.scheduleNextCheck();
+	},
+
+	scheduleNextCheck() {
+		if (this.timerId) {
+			clearTimeout(this.timerId);
+		}
+
+		const nextMail = getNextScheduledEmail();
+
+		if (!nextMail) {
+			this.nextCheckTime = null;
+			console.log("No scheduled emails found.");
+			return;
+		}
+
+		const now = new Date();
+		const nextSendTime = new Date(nextMail.scheduled_time);
+
+		let delay = nextSendTime - now;
+
+		if (delay <= 0) {
+			delay = 100;
+		}
+
+		this.nextCheckTime = new Date(now.getTime() + delay);
+		console.log(`Next scheduled email will be sent at: ${this.nextCheckTime}`);
+
+		this.timerId = setTimeout(() => this.processQueue(), delay);
+	},
+
+	async processQueue() {
+		console.log("Processing scheduled email...");
+
+		try {
+			const dueEmails = getDueEmails();
+
+			for (const email of dueEmails) {
+				try {
+					const auth = await authorize();
+					await sendEmail(auth, {
+						to: email.to,
+						cc: email.cc,
+						bcc: email.bcc,
+						subject: email.subject,
+						body: email.body
+					});
+
+					markEmailAsSent(email.id);
+				}
+				catch (error) {
+					console.error(`Failed to send scheduled email ${email.id}:`, error);
+					markEmailAsFailed(email.id, error.message);
+				}
+			}
+		}
+		catch (error) {
+			console.error("Error processing scheduled emails:", error);
+		}
+
+		this.scheduleNextCheck();
+	}
+};
+
+emailScheduler.init();
 
 // Authentication middleware
 const authenticatedUser = async (req, res, next) => {
@@ -375,15 +623,9 @@ app.get("/search", async (req, res) => {
 	return res.render("home", { query, templates: searchResults });
 });
 
-//save log in db
-const logEmail = (user_id, to, cc, bcc, subject, body) => {
-	const date = new Date().toISOString().split("T")[0];
-	db.prepare('INSERT INTO "logs" ("user_id", "to", "cc", "bcc", "subject", "body", "date") VALUES (?, ?, ?, ?, ?, ?, ?)').run(user_id, to, cc, bcc, subject, body, date);
-}
-
 app.post("/generate", async (req, res) => {
 	const { templateId } = req.query;
-	const { to, cc, bcc, ...fields } = req.body;
+	const { sendMethod, to, cc, bcc, ...fields } = req.body;
 
 	const template = getTemplate(templateId);
 	if (!template) {
@@ -398,12 +640,74 @@ app.post("/generate", async (req, res) => {
 
 	const subject = replaceDynamicFields(template.subject, fields);
 	const body = replaceDynamicFields(template.body, fields);
-
-	const e = encodeURIComponent;
-	const mailtoLink = `mailto:${e(to)}?cc=${e(cc)}&bcc=${e(bcc)}&subject=${e(subject)}&body=${e(body)}`;
 	const userId = res.locals.session?.user?.id;
-	logEmail(userId, to, cc, bcc, subject, body)
-	res.redirect(mailtoLink);
+
+	// Log email regardless of send method
+	logEmail(userId, to, cc || '', bcc || '', subject, body);
+
+	if (sendMethod === 'gmail') {
+		try {
+			const auth = await authorize();
+			await sendEmail(auth, { to, cc, bcc, subject, body });
+			return res.redirect('/sent?status=success');
+		} catch (error) {
+			console.error('Error sending email via Gmail:', error);
+			return res.redirect(`/template/${templateId}?error=${encodeURIComponent('Failed to send email via Gmail')}`);
+		}
+	} else {
+		// Default to mailto link
+		const e = encodeURIComponent;
+		const mailtoLink = `mailto:${e(to)}?cc=${e(cc)}&bcc=${e(bcc)}&subject=${e(subject)}&body=${e(body)}`;
+		return res.redirect(mailtoLink);
+	}
+});
+
+app.post("/schedule-email", async (req, res) => {
+	const { templateId } = req.query;
+	const { scheduledTime, to, cc, bcc, ...fields } = req.body;
+
+	const template = getTemplate(templateId);
+	if (!template) {
+		return res.status(404).send("Template not found");
+	}
+
+	const subject = replaceDynamicFields(template.subject, fields);
+	const body = replaceDynamicFields(template.body, fields);
+	const userId = res.locals.session?.user?.id;
+
+	try {
+		const emailId = scheduleEmail(userId, to, cc || '', bcc || '', subject, body, scheduledTime);
+		return res.redirect(`/scheduled?status=scheduled&id=${emailId}`);
+	} catch (error) {
+		console.error('Error scheduling email:', error);
+		return res.redirect(`/template/${templateId}?error=${encodeURIComponent('Failed to schedule email')}`);
+	}
+});
+
+app.get("/scheduled", async (req, res) => {
+	const userId = res.locals.session?.user?.id;
+	const { status, id } = req.query;
+
+	let scheduledEmail = null;
+	if (id) {
+		scheduledEmail = db.prepare(
+			'SELECT * FROM scheduled_emails WHERE id = ? AND user_id = ?'
+		).get(id, userId);
+	}
+
+	const scheduledEmails = db.prepare(
+		'SELECT * FROM scheduled_emails WHERE user_id = ? ORDER BY scheduled_time ASC'
+	).all(userId);
+
+	const showCelebration = status === 'scheduled';
+
+	res.render("scheduled", {
+		scheduledEmails,
+		scheduledEmail,
+		showCelebration,
+		status,
+		id
+	});
 });
 
 // Additional helper functions

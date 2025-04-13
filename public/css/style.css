@@ -584,3 +584,156 @@ code {
     width: 1rem;
     height: 1rem;
 }
+
+.send-options-container {
+    display: flex;
+    gap: 1rem;
+    margin: 0.5rem 0;
+    width: 100%;
+}
+  
+.send-option-card {
+    flex: 1;
+    border: 2px solid var(--bg-border);
+    border-radius: var(--radius-s);
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+  
+.send-option-card:hover {
+    border-color: var(--clr-400);
+    background-color: var(--bg-subtle);
+}
+  
+.send-option-card input[type="radio"] {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    margin: 0;
+    width: auto;
+}
+  
+.send-option-card label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+  
+.send-icon {
+	width: 2.5rem;
+	height: 2.5rem;
+	color: var(--clr-500);
+}
+  
+.gmail-img {
+	width: 2.5rem;
+	height: 2.5rem;
+	object-fit: contain;
+}
+  
+.option-text {
+    font-weight: var(--font-weight-medium);
+    font-size: var(--step-0);
+}
+  
+.option-description {
+    font-size: var(--step--1);
+    color: var(--txt-2);
+    text-align: center;
+}
+  
+.send-option-card.selected {
+    border-color: var(--clr-500);
+    background-color: var(--bg-subtle);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-option-card {
+    border: 1px solid var(--bg-border);
+    border-radius: var(--radius-s);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+  
+.schedule-option-card:hover {
+    border-color: var(--clr-400);
+    background-color: var(--bg-subtle);
+}
+  
+.schedule-option-card input[type="radio"] {
+    margin-right: 0.5rem;
+}
+  
+.schedule-option-card.selected {
+    border-color: var(--clr-500);
+    background-color: var(--bg-subtle);
+}
+  
+.datetime-input {
+    padding: 0.5rem;
+    border: 1px solid var(--bg-border);
+    border-radius: var(--radius-s);
+    width: 100%;
+}
+
+.error-notification {
+    background-color: hsl(0, 47%, 48%);;
+    border-left: 4px solid hsl(0, 47%, 48%);;
+    color: hsl(0, 47%, 48%);;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: var(--radius-s);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideIn 0.3s ease-out;
+}
+  
+@keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+}
+  
+.error-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+  
+.error-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke: #ffffff;
+    flex-shrink: 0;
+}
+  
+.error-close {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 0.75;
+    border-radius: var(--radius-xs);
+    transition: background-color 0.2s;
+    margin-left: 1rem;
+}
+  
+.error-close:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}

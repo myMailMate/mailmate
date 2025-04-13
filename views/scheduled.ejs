@@ -1,0 +1,359 @@
+<div class="section">
+  <% if (showCelebration) { %>
+  <div class="celebration-container">
+    <div class="confetti-container">
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+      <div class="confetti"></div>
+    </div>
+
+    <div class="success-message">
+      <div class="success-icon-container">
+        <svg
+          class="success-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <h1 class="fs:xl">Email Scheduled Successfully!</h1>
+      <p class="fs:md">
+        Your email has been scheduled and will be sent at the specified time.
+      </p>
+      <% if (scheduledEmail) { %>
+      <div class="scheduled-details">
+        <div class="detail-item">
+          <span class="detail-label">To:</span>
+          <span class="detail-value"><%= scheduledEmail.to %></span>
+        </div>
+        <% if (scheduledEmail.cc) { %>
+        <div class="detail-item">
+          <span class="detail-label">CC:</span>
+          <span class="detail-value"><%= scheduledEmail.cc %></span>
+        </div>
+        <% } %>
+        <div class="detail-item">
+          <span class="detail-label">Subject:</span>
+          <span class="detail-value"><%= scheduledEmail.subject %></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Scheduled for:</span>
+          <span class="detail-value"
+            ><%= new Date(scheduledEmail.scheduled_time).toLocaleString()
+            %></span
+          >
+        </div>
+      </div>
+      <% } %>
+
+      <div class="action-buttons">
+        <a href="/" class="button secondary">Back to Home</a>
+        <a href="/scheduled" class="button primary"
+          >View All Scheduled Emails</a
+        >
+      </div>
+    </div>
+  </div>
+  <% } else { %>
+  <h1 class="fs:xl">Scheduled Emails</h1>
+
+  <% if (scheduledEmails && scheduledEmails.length > 0) { %>
+  <div class="scheduled-list">
+    <% scheduledEmails.forEach(email => { %>
+    <div class="scheduled-item <%= email.status %>">
+      <div class="scheduled-header">
+        <h3 class="fs:md"><%= email.subject %></h3>
+        <span class="scheduled-status <%= email.status %>"
+          ><%= email.status %></span
+        >
+      </div>
+      <div class="scheduled-details">
+        <div class="detail-row">
+          <span>To: <%= email.to %></span>
+        </div>
+        <% if (email.cc) { %>
+        <div class="detail-row">
+          <span>CC: <%= email.cc %></span>
+        </div>
+        <% } %>
+        <div class="detail-row">
+          <span
+            >Scheduled for: <%= new Date(email.scheduled_time).toLocaleString()
+            %></span
+          >
+        </div>
+      </div>
+    </div>
+    <% }); %>
+  </div>
+  <% } else { %>
+  <div class="empty-state">
+    <p>You don't have any scheduled emails yet.</p>
+    <a href="/" class="button primary">Create New Email</a>
+  </div>
+  <% } %> <% } %>
+</div>
+
+<style>
+  .celebration-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    overflow: hidden;
+  }
+
+  .confetti-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: var(--clr-500);
+    border-radius: 0;
+    opacity: 0;
+    animation: confetti-fall 5s ease-in-out forwards;
+  }
+
+  .confetti:nth-child(2n) {
+    width: 8px;
+    height: 16px;
+    background-color: var(--clr-400);
+    animation-duration: 4s;
+    animation-delay: 0.3s;
+  }
+
+  .confetti:nth-child(3n) {
+    width: 12px;
+    height: 12px;
+    background-color: var(--clr-300);
+    animation-duration: 4.5s;
+    animation-delay: 0.7s;
+  }
+
+  .confetti:nth-child(4n) {
+    width: 16px;
+    height: 8px;
+    background-color: var(--clr-600);
+    animation-duration: 5.5s;
+    animation-delay: 0.1s;
+  }
+
+  .confetti:nth-child(5n) {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--clr-700);
+    animation-duration: 4.8s;
+    animation-delay: 0.5s;
+  }
+
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(-100px) rotate(0deg);
+      opacity: 1;
+      top: -100px;
+      left: calc(var(--x) * 1%);
+    }
+    100% {
+      transform: translateY(calc(60vh + 100px)) rotate(720deg);
+      opacity: 0;
+      top: calc(100% + 100px);
+      left: calc(var(--x) * 1% + var(--drift) * 1px);
+    }
+  }
+
+  .success-message {
+    text-align: center;
+    background-color: var(--bg-subtle);
+    border-radius: var(--radius-m);
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    z-index: 1;
+    max-width: 600px;
+    width: 100%;
+    animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes pop-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    80% {
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .success-icon-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    color: #10b981;
+    stroke-width: 2;
+    animation: check-mark 1s ease-in-out forwards;
+  }
+
+  @keyframes check-mark {
+    0% {
+      opacity: 0;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+    }
+    60% {
+      opacity: 1;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .scheduled-details {
+    margin-top: 2rem;
+    text-align: left;
+    background-color: var(--bg-main);
+    border-radius: var(--radius-s);
+    padding: 1rem;
+  }
+
+  .detail-item {
+    display: flex;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+  }
+
+  .detail-label {
+    font-weight: var(--font-weight-medium);
+    width: 100px;
+  }
+
+  .action-buttons {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  /* Styles for the scheduled emails list */
+  .scheduled-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .scheduled-item {
+    background-color: var(--bg-subtle);
+    border-radius: var(--radius-s);
+    border-left: 4px solid var(--clr-400);
+    padding: 1rem;
+  }
+
+  .scheduled-item.sent {
+    border-left-color: #10b981;
+  }
+
+  .scheduled-item.failed {
+    border-left-color: #ef4444;
+  }
+
+  .scheduled-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .scheduled-status {
+    font-size: var(--step--1);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-xs);
+    text-transform: uppercase;
+    font-weight: var(--font-weight-medium);
+  }
+
+  .scheduled-status.pending {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .scheduled-status.sent {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  .scheduled-status.failed {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .empty-state {
+    text-align: center;
+    margin-top: 3rem;
+  }
+
+  .empty-state p {
+    margin-bottom: 1.5rem;
+    color: var(--txt-2);
+  }
+</style>
+
+<script>
+  // Set random positions for confetti
+  document.addEventListener("DOMContentLoaded", function () {
+    const confetti = document.querySelectorAll(".confetti");
+
+    confetti.forEach((particle) => {
+      const x = Math.random() * 100; // random x position
+      const drift = (Math.random() - 0.5) * 200; // random horizontal drift
+
+      particle.style.setProperty("--x", x);
+      particle.style.setProperty("--drift", drift);
+    });
+  });
+</script>

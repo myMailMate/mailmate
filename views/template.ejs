@@ -1,84 +1,518 @@
 <h1 class="fs:xl"><%= template.name %></h1>
 
-<form id="template" action="/generate?templateId=<%= template.id %>" method="post" class="flow">
-	<div class="flow fields">
-		<label class="fw:medium" for="to">Who are you sending this to?</label>
-		<div class="cluster">
-			<input type="email" id="to" name="to" value="<%= template.to %>" />
-			<button id="ccFieldBtn" type="button" onclick="toggleCcField()">Cc</button>
-			<button id="bccFieldBtn" type="button" onclick="toggleBccField()">Bcc</button>
-		</div>
-		<div id="ccInputField" style="display: none" class="stack gap:-1">
-			<label class="fw:medium" for="cc"> Who else should be copied on this email? </label>
-			<input type="email" id="cc" name="cc" value="<%= template.cc %>" />
-		</div>
+<div id="errorNotification" class="error-notification" style="display: none">
+  <div class="error-content">
+    <svg
+      class="error-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span id="errorMessage"></span>
+  </div>
+  <button type="button" class="error-close" onclick="dismissError()">x</button>
+</div>
 
-		<div id="bccInputField" style="display: none" class="stack gap:-1">
-			<label class="fw:medium" for="bcc"> Who would you like to blind copy on this email? </label>
-			<input type="email" id="bcc" name="bcc" value="<%= template.bcc %>" />
-		</div>
-	</div>
-	<hr />
+<form
+  id="template"
+  action="#"
+  method="post"
+  class="flow"
+  onsubmit="handleFormSubmit(event)"
+>
+  <div class="flow fields">
+    <label class="fw:medium" for="to">Who are you sending this to?</label>
+    <div class="cluster">
+      <input type="email" id="to" name="to" value="<%= template.to %>" />
+      <button id="ccFieldBtn" type="button" onclick="toggleCcField()">
+        Cc
+      </button>
+      <button id="bccFieldBtn" type="button" onclick="toggleBccField()">
+        Bcc
+      </button>
+    </div>
+    <div id="ccInputField" style="display: none" class="stack gap:-1">
+      <label class="fw:medium" for="cc">
+        Who else should be copied on this email?
+      </label>
+      <input type="email" id="cc" name="cc" value="<%= template.cc %>" />
+    </div>
 
-	<h2 class="fs:lg fw:medium mb:3">Dynamic Email Fields</h2>
+    <div id="bccInputField" style="display: none" class="stack gap:-1">
+      <label class="fw:medium" for="bcc">
+        Who would you like to blind copy on this email?
+      </label>
+      <input type="email" id="bcc" name="bcc" value="<%= template.bcc %>" />
+    </div>
+  </div>
+  <hr />
 
-	<% if (!template.fields.length) { %>
-	<p>No dynamic fields available.</p>
-	<% } %>
-	<!--  -->
-	<div id="dynamicFields" class="flow">
-		<% template.fields.forEach(field => { %>
-		<div class="stack fields">
-			<label class="fw:medium" for="<%= field.label %>"><%= field.label %></label>
-			<input
-				type="<%= field.type %>"
-				id="<%= field.id %>"
-				name="<%= field.id %>"
-				value="<%= field.value %>"
-				required
-			/>
-		</div>
-		<% }) %>
-	</div>
+  <h2 class="fs:lg fw:medium mb:3">Dynamic Email Fields</h2>
 
-	<br />
+  <% if (!template.fields.length) { %>
+  <p>No dynamic fields available.</p>
+  <% } %>
+  <!--  -->
+  <div id="dynamicFields" class="flow">
+    <% template.fields.forEach(field => { %>
+    <div class="stack fields">
+      <label class="fw:medium" for="<%= field.label %>"
+        ><%= field.label %></label
+      >
+      <input
+        type="<%= field.type %>"
+        id="<%= field.id %>"
+        name="<%= field.id %>"
+        value="<%= field.value %>"
+        required
+      />
+    </div>
+    <% }) %>
+  </div>
 
-	<div class="repel mt:5">
-		<button type="button" onclick="openPreviewDialog(`<%= template.subject %>`, `<%= template.body %>`)">
-			Preview Email 👀
-		</button>
-		<button class="primary" type="submit">Send Email</button>
-	</div>
+  <hr />
+
+  <div class="flow fields">
+    <h2 class="fs:lg fw:medium mb:3">Send Options</h2>
+    <div class="send-options-container">
+      <div class="send-option-card" onclick="selectSendOption('mailto')">
+        <input
+          type="radio"
+          id="mailto"
+          name="sendMethod"
+          value="mailto"
+          checked
+        />
+        <label for="mailto">
+          <svg
+            class="send-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+            ></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          <span class="option-text">Open in email client</span>
+          <span class="option-description"
+            >Use your default email application</span
+          >
+        </label>
+      </div>
+      <div class="send-option-card" onclick="selectSendOption('gmail')">
+        <input type="radio" id="gmail" name="sendMethod" value="gmail" />
+        <label for="gmail">
+          <img
+            src="/img/gmail-icon.svg"
+            alt="Gmail"
+            class="send-icon gmail-img"
+          />
+          <span class="option-text">Send directly via Gmail</span>
+          <span class="option-description"
+            >Email is sent immediately through your account</span
+          >
+        </label>
+      </div>
+      <div class="send-option-card" onclick="selectSendOption('schedule')">
+        <input type="radio" id="schedule" name="sendMethod" value="schedule" />
+        <label for="schedule">
+          <svg
+            class="send-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span class="option-text">Schedule for later</span>
+          <span class="option-description">Choose when to send this email</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Schedule email options (only visible when schedule is selected) -->
+    <div id="scheduleOptions" class="flow mt:3" style="display: none">
+      <h3 class="fs:md fw:medium mb:2">When should this email be sent?</h3>
+      <div class="stack">
+        <div class="cluster wrap">
+          <div
+            class="schedule-option-card"
+            onclick="selectScheduleOption('today')"
+          >
+            <input
+              type="radio"
+              id="scheduleToday"
+              name="schedulePreset"
+              value="today"
+              checked
+            />
+            <label for="scheduleToday">Later today at 5 pm</label>
+          </div>
+          <div
+            class="schedule-option-card"
+            onclick="selectScheduleOption('tomorrow')"
+          >
+            <input
+              type="radio"
+              id="scheduleTomorrow"
+              name="schedulePreset"
+              value="tomorrow"
+            />
+            <label for="scheduleTomorrow">Tomorrow morning at 9 am</label>
+          </div>
+          <div
+            class="schedule-option-card"
+            onclick="selectScheduleOption('next-week')"
+          >
+            <input
+              type="radio"
+              id="scheduleNextWeek"
+              name="schedulePreset"
+              value="next-week"
+            />
+            <label for="scheduleNextWeek">Next week Monday at 9 am</label>
+          </div>
+          <div
+            class="schedule-option-card"
+            onclick="selectScheduleOption('custom')"
+          >
+            <input
+              type="radio"
+              id="scheduleCustom"
+              name="schedulePreset"
+              value="custom"
+            />
+            <label for="scheduleCustom">Custom time</label>
+          </div>
+        </div>
+        <div id="customTimeSelector" class="stack gap:2" style="display: none">
+          <div class="cluster">
+            <input
+              type="datetime-local"
+              id="scheduledTime"
+              name="scheduledTime"
+              class="datetime-input"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="repel mt:5">
+    <button
+      type="button"
+      onclick="openPreviewDialog(`<%= template.subject %>`, `<%= template.body %>`)"
+    >
+      Preview Email 👀
+    </button>
+    <button id="submitButton" class="primary" type="submit">Send Email</button>
+  </div>
 </form>
 
 <script>
-	const ccFieldBtn = document.getElementById("ccFieldBtn");
-	const bccFieldBtn = document.getElementById("bccFieldBtn");
+  // Wait for DOM to be fully loaded before attaching event handlers
+  document.addEventListener("DOMContentLoaded", function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get("error");
 
-	const ccInputField = document.getElementById("ccInputField");
-	const bccInputField = document.getElementById("bccInputField");
+    if (errorParam) {
+      showError(decodeURIComponent(errorParam));
+    }
 
-	function toggleCcField() {
-		ccFieldBtn.style.backgroundColor = ccInputField.style.display === "none" ? "var(--bg-mute)" : "var(--bg-main)";
-		ccInputField.style.display = ccInputField.style.display === "none" ? "flex" : "none";
-		ccFieldBtn.innerText = ccInputField.style.display === "none" ? "Cc" : "Hide Cc";
-	}
+    const ccFieldBtn = document.getElementById("ccFieldBtn");
+    const bccFieldBtn = document.getElementById("bccFieldBtn");
 
-	function toggleBccField() {
-		bccFieldBtn.style.backgroundColor =
-			bccInputField.style.display === "none" ? "var(--bg-mute)" : "var(--bg-main)";
-		bccInputField.style.display = bccInputField.style.display === "none" ? "flex" : "none";
-		bccFieldBtn.innerText = bccInputField.style.display === "none" ? "Bcc" : "Hide Bcc";
-	}
+    const ccInputField = document.getElementById("ccInputField");
+    const bccInputField = document.getElementById("bccInputField");
+
+    if (ccFieldBtn && ccInputField) {
+      // Initialize button state based on initial field visibility
+      updateButtonState(ccFieldBtn, ccInputField);
+
+      ccFieldBtn.addEventListener("click", function () {
+        toggleField(ccFieldBtn, ccInputField, "Cc", "Hide Cc");
+      });
+    }
+
+    if (bccFieldBtn && bccInputField) {
+      // Initialize button state based on initial field visibility
+      updateButtonState(bccFieldBtn, bccInputField);
+
+      bccFieldBtn.addEventListener("click", function () {
+        toggleField(bccFieldBtn, bccInputField, "Bcc", "Hide Bcc");
+      });
+    }
+
+    function toggleField(button, field, showText, hideText) {
+      const isVisible = field.style.display !== "none";
+      field.style.display = isVisible ? "none" : "flex";
+      button.style.backgroundColor = isVisible
+        ? "var(--bg-main)"
+        : "var(--bg-mute)";
+      button.innerText = isVisible ? showText : hideText;
+    }
+
+    function updateButtonState(button, field) {
+      const isVisible = field.style.display !== "none";
+      button.style.backgroundColor = isVisible
+        ? "var(--bg-mute)"
+        : "var(--bg-main)";
+      button.innerText = isVisible ? "Hide Cc" : "Cc";
+    }
+
+    // Send options functionality
+    const sendOptionCards = document.querySelectorAll(".send-option-card");
+    sendOptionCards.forEach((card) => {
+      card.addEventListener("click", function () {
+        const radioInput = this.querySelector('input[type="radio"]');
+        if (radioInput) {
+          radioInput.checked = true;
+          sendOptionCards.forEach((c) => c.classList.remove("selected"));
+          this.classList.add("selected");
+        }
+      });
+    });
+
+    // Initialize selected send option
+    const selectedOption = document.querySelector(
+      'input[name="sendMethod"]:checked'
+    );
+    if (selectedOption) {
+      selectedOption.closest(".send-option-card").classList.add("selected");
+    }
+  });
+
+  function showError(message) {
+    const errorNotification = document.getElementById("errorNotification");
+    const errorMessage = document.getElementById("errorMessage");
+
+    errorMessage.textContent = message;
+    errorNotification.style.display = "flex";
+
+    // Auto-dismiss after 10 seconds
+    setTimeout(dismissError, 10000);
+  }
+
+  function dismissError() {
+    const errorNotification = document.getElementById("errorNotification");
+
+    // Add fade-out animation
+    errorNotification.style.opacity = "0";
+    errorNotification.style.transform = "translateY(-10px)";
+    errorNotification.style.transition = "opacity 0.3s, transform 0.3s";
+
+    // Remove from DOM after animation completes
+    setTimeout(() => {
+      errorNotification.style.display = "none";
+      errorNotification.style.opacity = "1";
+      errorNotification.style.transform = "translateY(0)";
+      errorNotification.style.transition = "";
+
+      // Remove the error parameter from URL
+      const url = new URL(window.location);
+      url.searchParams.delete("error");
+      window.history.replaceState({}, "", url);
+    }, 300);
+  }
+
+  // Keep these as global functions for onclick attributes
+  function toggleCcField() {
+    const ccFieldBtn = document.getElementById("ccFieldBtn");
+    const ccInputField = document.getElementById("ccInputField");
+
+    if (ccFieldBtn && ccInputField) {
+      const isVisible = ccInputField.style.display !== "none";
+      ccInputField.style.display = isVisible ? "none" : "flex";
+      ccFieldBtn.style.backgroundColor = isVisible
+        ? "var(--bg-main)"
+        : "var(--bg-mute)";
+      ccFieldBtn.innerText = isVisible ? "Cc" : "Hide Cc";
+    }
+  }
+
+  function toggleBccField() {
+    const bccFieldBtn = document.getElementById("bccFieldBtn");
+    const bccInputField = document.getElementById("bccInputField");
+
+    if (bccFieldBtn && bccInputField) {
+      const isVisible = bccInputField.style.display !== "none";
+      bccInputField.style.display = isVisible ? "none" : "flex";
+      bccFieldBtn.style.backgroundColor = isVisible
+        ? "var(--bg-main)"
+        : "var(--bg-mute)";
+      bccFieldBtn.innerText = isVisible ? "Bcc" : "Hide Bcc";
+    }
+  }
+
+  function selectSendOption(option) {
+    document.getElementById(option).checked = true;
+
+    document.querySelectorAll(".send-option-card").forEach((card) => {
+      card.classList.remove("selected");
+    });
+
+    document
+      .getElementById(option)
+      .closest(".send-option-card")
+      .classList.add("selected");
+
+    // Show/hide schedule options based on selection
+    const scheduleOptions = document.getElementById("scheduleOptions");
+    scheduleOptions.style.display = option === "schedule" ? "block" : "none";
+
+    // Update button text based on selection
+    const submitButton = document.getElementById("submitButton");
+    submitButton.innerText =
+      option === "schedule" ? "Schedule Email" : "Send Email";
+  }
+
+  function selectScheduleOption(option) {
+    document.getElementById(
+      "schedule" + option.charAt(0).toUpperCase() + option.slice(1)
+    ).checked = true;
+
+    document.querySelectorAll(".schedule-option-card").forEach((card) => {
+      card.classList.remove("selected");
+    });
+
+    document
+      .getElementById(
+        "schedule" + option.charAt(0).toUpperCase() + option.slice(1)
+      )
+      .closest(".schedule-option-card")
+      .classList.add("selected");
+
+    // Show/hide custom time selector
+    const customTimeSelector = document.getElementById("customTimeSelector");
+    customTimeSelector.style.display = option === "custom" ? "block" : "none";
+
+    // Set default times based on selection
+    const scheduledTimeInput = document.getElementById("scheduledTime");
+
+    const now = new Date();
+    let scheduledTime;
+
+    switch (option) {
+      case "today":
+        // Set to today at 5 PM
+        scheduledTime = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          17,
+          0,
+          0
+        );
+        break;
+      case "tomorrow":
+        // Set to tomorrow at 9 AM
+        scheduledTime = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() + 1,
+          9,
+          0,
+          0
+        );
+        break;
+      case "next-week":
+        // Set to next Monday at 9 AM
+        const daysUntilMonday = (1 + 7 - now.getDay()) % 7 || 7; // 1 = Monday, 0 = Sunday
+        scheduledTime = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() + daysUntilMonday,
+          9,
+          0,
+          0
+        );
+        break;
+      case "custom":
+        // Don't set a default, user will choose
+        break;
+    }
+
+    if (scheduledTime) {
+      // Format the date for the datetime-local input
+      const formattedDate = scheduledTime.toISOString().slice(0, 16);
+      scheduledTimeInput.value = formattedDate;
+    }
+  }
+
+  function handleFormSubmit(event) {
+    event.preventDefault(); // Always prevent default first
+
+    const form = document.getElementById("template");
+    const sendMethod = document.querySelector(
+      'input[name="sendMethod"]:checked'
+    ).value;
+
+    if (sendMethod === "schedule") {
+      // Get the scheduled time
+      const scheduledTime = document.getElementById("scheduledTime").value;
+
+      if (!scheduledTime) {
+        alert("Please select a time to schedule your email.");
+        return;
+      }
+
+      // Change the form action for scheduled emails
+      form.action = `/schedule-email?templateId=<%= template.id %>`;
+    } else if (sendMethod === "gmail") {
+      // Keep the default action but specify gmail method
+      form.action = `/generate?templateId=<%= template.id %>`;
+    } else {
+      // For mailto
+      form.action = `/generate?templateId=<%= template.id %>`;
+    }
+
+    // Submit the form programmatically
+    form.submit();
+  }
+
+  // Initialize scheduled time to current time + 1 hour
+  document.addEventListener("DOMContentLoaded", function () {
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    const formattedDate = now.toISOString().slice(0, 16);
+
+    const scheduledTimeInput = document.getElementById("scheduledTime");
+    if (scheduledTimeInput) {
+      scheduledTimeInput.value = formattedDate;
+    }
+
+    // Set default schedule option
+    selectScheduleOption("today");
+  });
 </script>
 
 <style>
-	h2 {
-		text-decoration: underline;
-		text-decoration-color: var(--clr-500);
-	}
+  h2 {
+    text-decoration: underline;
+    text-decoration-color: var(--clr-500);
+  }
 
-	.fields {
-		margin-inline: 0.15rem;
-	}
+  .fields {
+    margin-inline: 0.15rem;
+  }
 </style>
