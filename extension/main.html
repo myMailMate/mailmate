@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8" />
+        <title>My Mail Mate</title>
+        <link rel="stylesheet" href="popup.css" />
+    </head>
+
+    <body>
+        <div class="popup-container stack" style="min-width: 260px; padding: var(--space-l);">
+            <a href="http://localhost:3000" class="no-style cluster"
+                style="gap: var(--space-s); margin-bottom: var(--space-l); text-decoration: none;">
+                <img src="./mail_mate_logo.png" alt="Decorative Logo" class="logo"
+                    style="width: 2.2rem; height: 2.2rem;" />
+                <h2 style="font-size: var(--step-2); letter-spacing: 0.02em;">My Mail
+                    Mate</h2>
+            </a>
+            <button class="primary" id="templates-btn"
+                style="margin-bottom: var(--space-s); width: 100%;">Templates</button>
+            <button class="primary" id="scheduled-btn"
+                style="margin-bottom: var(--space-s); width: 100%;">Scheduled</button>
+            <button class="primary" id="sent-btn" style="width: 100%;">Sent</button>
+        </div>
+        <script src="popup.js"></script>
+    </body>
+
+</html>

@@ -1,0 +1,17 @@
+{
+    "manifest_version": 3,
+    "name": "Mailmate",
+    "description": "Quickly access Templates, Scheduled, and Sent emails on Mailmate.",
+    "icons": {
+        "16": "mail_mate_logo.png",
+        "48": "mail_mate_logo.png",
+        "128": "mail_mate_logo.png"
+    },
+    "version": "1.0",
+    "action": {
+        "default_popup": "main.html"
+    },
+    "permissions": [
+        "tabs"
+    ]
+}
